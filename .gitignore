@@ -8,3 +8,4 @@ background-music.mp3
 # Temporary files
 *.tmp
 *.temp
+.vercel

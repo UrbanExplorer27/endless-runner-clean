@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>🚀 NO FALLING BARRIERS 🚀</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #0a0a0a, #1a1a2e, #16213e);
+            color: white;
+            font-family: 'Courier New', monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            touch-action: manipulation;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        #gameContainer {
+            position: relative;
+            border: 3px solid #00ff00;
+            border-radius: 10px;
+            box-shadow: 0 0 20px #00ff00;
+            margin: 20px auto;
+            width: 800px;
+            height: 600px;
+            background: #000;
+            max-width: 100vw;
+            max-height: 80vh;
+        }
+        
+        /* Mobile responsive styles */
+        @media (max-width: 900px) {
+            body {
+                padding: 10px;
+            }
+            
+            #gameContainer {
+                width: 90vw;
+                height: 60vh;
+                margin: 10px auto;
+                max-width: 600px;
+            }
+            
+            #ui {
+                font-size: 14px;
+                top: 10px;
+                left: 10px;
+            }
+            
+            #combo {
+                font-size: 18px;
+                top: 10px;
+                right: 10px;
+            }
+            
+            h1 {
+                font-size: 24px;
+                margin: 10px 0;
+            }
+        }
+        
+        @media (max-width: 600px) {
+            body {
+                padding: 15px;
+            }
+            
+            #gameContainer {
+                width: 85vw;
+                height: 65vh;
+                margin: 15px auto;
+                max-width: 500px;
+            }
+            
+            #ui {
+                font-size: 12px;
+                top: 8px;
+                left: 8px;
+            }
+            
+            #combo {
+                font-size: 16px;
+                top: 8px;
+                right: 8px;
+            }
+            
+            h1 {
+                font-size: 20px;
+                margin: 8px 0;
+            }
+        }
+        
+        @media (max-width: 400px) {
+            body {
+                padding: 10px;
+            }
+            
+            #gameContainer {
+                width: 90vw;
+                height: 70vh;
+                margin: 10px auto;
+                max-width: 350px;
+            }
+            
+            #ui {
+                font-size: 11px;
+                top: 6px;
+                left: 6px;
+            }
+            
+            #combo {
+                font-size: 14px;
+                top: 6px;
+                right: 6px;
+            }
+            
+            h1 {
+                font-size: 18px;
+                margin: 5px 0;
+            }
+        }
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            color: #00ff00;
+            font-size: 18px;
+            text-shadow: 0 0 10px #00ff00;
+        }
+        
+        #combo {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            color: #ff6600;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 0 0 15px #ff6600;
+            display: none;
+            pointer-events: none; /* Allow clicks to pass through to game */
+        }
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 200;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 30px;
+            border: 2px solid #ff0000;
+            border-radius: 10px;
+            text-align: center;
+            display: none;
+        }
+        button {
+            background: linear-gradient(45deg, #00ff00, #0088ff);
+            border: none;
+            padding: 10px 20px;
+            margin: 10px;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px #00ff00;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 NO FALLING BARRIERS 🚀</h1>
+    
+    <div id="gameContainer">
+        <div id="ui">
+            <div>Score: <span id="score">0</span></div>
+            <div>Speed: <span id="speed">1.0</span></div>
+            <div>Barriers Passed: <span id="barriersPassed">0</span></div>
+            <div>Jumps: <span id="jumpCount">0</span>/<span id="maxJumps">3</span></div>
+        </div>
+        
+        <div id="combo">
+            <div>COMBO x<span id="comboCount">0</span>!</div>
+        </div>
+        
+        <div id="phaser-game"></div>
+    </div>
+    
+    <div id="gameOver">
+        <h2>💥 GAME OVER! 💥</h2>
+        <p>Final Score: <span id="finalScore">0</span></p>
+        <p>Barriers Passed: <span id="finalBarriers">0</span></p>
+        <button onclick="restartGame()">🔄 RESTART</button>
+    </div>
+
+    <script>
+        console.log('=== STARTING NO FALLING BARRIERS ===');
+        
+        let gameInstance = null;
+        let gameState = 'playing';
+        let score = 0;
+        let speed = 1.0;
+        let barriersPassed = 0;
+        let groundY = 500;
+        let barriers = []; // Array to track barriers manually
+        let particles = []; // Particle effects
+        let combo = 0; // Combo system
+        let lastJumpTime = 0; // For combo timing (now unused)
+        let lastBarrierTime = 0; // For barrier-based combo timing
+        let jumpCount = 0; // Multi-jump counter
+        let maxJumps = 3; // Maximum number of jumps
+        
+        // Global music management
+        let globalMusicActive = false;
+        
+        const config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            parent: 'phaser-game',
+            backgroundColor: '#000000',
+            pixelArt: true,
+            antialias: false,
+            fps: {
+                target: 60,
+                forceSetTimeOut: true
+            },
+            render: {
+                pixelArt: true,
+                antialias: false,
+                roundPixels: true,
+                batchSize: 2000
+            },
+            loader: {
+                crossOrigin: 'anonymous',
+                timeout: 10000
+            },
+            scale: {
+                mode: Phaser.Scale.FIT,
+                autoCenter: Phaser.Scale.CENTER_BOTH,
+                min: {
+                    width: 320,
+                    height: 240
+                },
+                max: {
+                    width: 800,
+                    height: 600
+                }
+            },
+            input: {
+                activePointers: 3,
+                smoothFactor: 0.1
+            },
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    gravity: { y: 1800 },
+                    debug: false
+                }
+            },
+            scene: {
+                preload: preload,
+                create: create,
+                update: update
+            }
+        };
+        
+        function preload() {
+            console.log('Loading assets...');
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            const startTime = Date.now();
+            
+            // Show loading progress for mobile
+            if (isMobile) {
+                const loadingText = this.add.text(400, 300, 'Loading Game...', {
+                    fontSize: '24px',
+                    fill: '#ffffff'
+                }).setOrigin(0.5);
+                
+                this.load.on('progress', (progress) => {
+                    loadingText.setText(`Loading Game... ${Math.round(progress * 100)}%`);
+                });
+                
+                // Clear loader when complete
+                this.load.on('complete', () => {
+                    loadingText.destroy();
+                });
+            }
+            
+            // Load essential game assets first (smallest files)
+            this.load.image('ship', 'spaceships.png');
+            this.load.image('barrier1', 'barrier1.png');
+            this.load.image('barrier2', 'barrier2.png');
+            this.load.image('barrier3', 'barrier3.png');
+            
+            // Load background after essential assets
+            this.load.image('spaceBackground', 'spacebackground.png');
+            
+            // Load audio with aggressive mobile optimization
+            const timestamp = Date.now();
+            
+            if (isMobile) {
+                // Mobile: Load essential audio + small score sound (all MP3)
+                this.load.audio('jumpSound', `jump.mp3?v=${timestamp}`);
+                this.load.audio('collisionSound', `collision.mp3?v=${timestamp}`);
+                this.load.audio('scoreSound', `score.mp3?v=${timestamp}`);
+                console.log('Mobile: Loading essential audio + small score sound (all MP3 - 1MB+ music skipped)');
+            } else {
+                // Desktop: Load all audio (all MP3)
+                this.load.audio('jumpSound', `jump.mp3?v=${timestamp}`);
+                this.load.audio('backgroundMusic', `background-music.mp3?v=${timestamp}`);
+                this.load.audio('collisionSound', `collision.mp3?v=${timestamp}`);
+                this.load.audio('scoreSound', `score.mp3?v=${timestamp}`);
+                console.log('Desktop: Loading all audio (all MP3)');
+            }
+            
+            const loadTime = Date.now() - startTime;
+            console.log(`Assets loaded in ${loadTime}ms (${isMobile ? 'Mobile optimized' : 'Desktop'})`);
+        }
+        
+        function create() {
+            console.log('Creating endless runner game...');
+            
+            // Initialize audio with mobile-friendly error handling
+            try {
+                // Mobile-optimized audio settings
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                const audioVolume = isMobile ? 0.5 : 0.3; // Louder on mobile
+                
+                this.jumpSound = this.sound.add('jumpSound', { 
+                    volume: audioVolume,
+                    loop: false
+                });
+                this.collisionSound = this.sound.add('collisionSound', { 
+                    volume: isMobile ? 0.6 : 0.4,
+                    loop: false
+                });
+                
+                if (isMobile) {
+                    // Mobile: Skip background music but include score sound
+                    this.backgroundMusic = { 
+                        play: () => {}, 
+                        stop: () => {}, 
+                        isPlaying: false 
+                    };
+                    this.scoreSound = this.sound.add('scoreSound', { 
+                        volume: 0.4,
+                        loop: false
+                    });
+                    this.musicLoopActive = false;
+                    console.log('Mobile: Audio initialized (essential sounds + small score sound - 1MB+ music skipped)');
+                } else {
+                    // Desktop: Load all audio
+                    this.backgroundMusic = this.sound.add('backgroundMusic', { 
+                        volume: 0.2,
+                        loop: false
+                    });
+                    this.scoreSound = this.sound.add('scoreSound', { 
+                        volume: 0.2,
+                        loop: false
+                    });
+                    
+                    // Initialize music loop flag
+                    this.musicLoopActive = false;
+                    
+                    // Start background music (only if not already playing)
+                    if (!this.backgroundMusic.isPlaying && !this.musicLoopActive) {
+                        startBackgroundMusic(this);
+                    }
+                    console.log('Desktop: Audio initialized (all sounds)');
+                }
+            } catch (error) {
+                console.log('Audio not available:', error.message);
+                // Create dummy audio objects to prevent errors
+                this.jumpSound = { play: () => {}, setVolume: () => {}, volume: 0.3 };
+                this.backgroundMusic = { 
+                    play: () => {}, 
+                    stop: () => {}, 
+                    isPlaying: false 
+                };
+                this.collisionSound = { play: () => {} };
+                this.scoreSound = { play: () => {} };
+                this.musicLoopActive = false;
+            }
+            
+            // Add space background (behind everything)
+            const background = this.add.image(400, 300, 'spaceBackground');
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            
+            // Always use full size background for proper game window
+            background.setDisplaySize(800, 600);
+            background.setDepth(-1000); // Put background behind everything
+            
+            // No visible ground line - clean appearance
+            
+            // Create player spaceship (only if not already created)
+            if (!this.player) {
+                this.player = this.physics.add.image(150, groundY - 30, 'ship').setScale(0.5);
+                this.player.setCollideWorldBounds(true);
+                this.player.setDepth(1000); // Ensure player is on top
+            }
+            
+            // Create invisible ground collider (no visual line)
+            const groundTex = this.add.graphics().fillStyle(0x000000, 0).fillRect(0,0,800,6);
+            groundTex.generateTexture('groundLine', 800, 6);
+            groundTex.destroy();
+            const groundCollider = this.physics.add.staticImage(400, groundY+3, 'groundLine');
+            this.physics.add.collider(this.player, groundCollider);
+            
+            // Input
+            this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+            
+            // Touch input for mobile - prevent default behaviors
+            this.input.on('pointerdown', (pointer) => {
+                // Prevent default touch behaviors that might interfere
+                pointer.event.preventDefault();
+                handleJump(this);
+            });
+            
+            // Prevent context menu on long press
+            this.input.on('pointerup', (pointer) => {
+                pointer.event.preventDefault();
+            });
+            
+            // Add game title
+            this.add.text(400, 50, '🚀 ENDLESS RUNNER 🚀', {
+                fontSize: '24px',
+                fill: '#ffffff'
+            }).setOrigin(0.5);
+            
+            // Universal instructions for all devices
+            this.add.text(400, 100, 'Press SPACE or Click/Tap to jump over incoming barriers!', {
+                fontSize: '16px',
+                fill: '#ffff00'
+            }).setOrigin(0.5);
+            
+            this.add.text(400, 120, 'Press SPACE or Click/Tap multiple times for higher jumps!', {
+                fontSize: '14px',
+                fill: '#ff6600'
+            }).setOrigin(0.5);
+            
+            // Start endless barrier spawning with random timing (increased difficulty)
+            this.time.addEvent({
+                delay: 600, // Start spawning after 0.6 seconds
+                callback: () => {
+                    spawnBarrier.call(this);
+                    // Schedule next barrier with random delay (0.3-1.5 seconds for higher difficulty)
+                    const nextDelay = 300 + Math.random() * 1200;
+                    this.time.delayedCall(nextDelay, arguments.callee, [], this);
+                },
+                callbackScope: this,
+                loop: false // We'll handle the loop manually for random timing
+            });
+            
+            console.log('Endless runner game created successfully');
+        }
+        
+        // Handle jump input (keyboard and touch) - scene method
+        function handleJump(scene) {
+            // Always allow jumping - no restrictions
+            jumpCount++;
+            
+            // Play jump sound effect
+            scene.jumpSound.play();
+            
+            // Different jump strength based on jump number
+            if (jumpCount === 1) {
+                scene.player.setVelocityY(-700); // First jump
+                createJumpParticles(scene.player.x, scene.player.y, '#00ff00');
+            } else if (jumpCount <= maxJumps) {
+                scene.player.setVelocityY(-600); // Additional jumps
+                createJumpParticles(scene.player.x, scene.player.y, '#ff6600');
+            } else {
+                // Beyond max jumps - still allow but weaker
+                scene.player.setVelocityY(-400); // Weaker jump
+                createJumpParticles(scene.player.x, scene.player.y, '#ff0000');
+            }
+        }
+        
+        // Background music management function
+        function startBackgroundMusic(scene) {
+            if (globalMusicActive || scene.musicLoopActive) {
+                console.log('Music already active, skipping');
+                return; // Prevent multiple loops
+            }
+            
+            console.log('Starting background music');
+            globalMusicActive = true;
+            scene.musicLoopActive = true;
+            scene.backgroundMusic.play();
+            
+            // Set up looping with 1-second pause when music ends
+            scene.backgroundMusic.once('complete', () => {
+                console.log('Music completed, pausing for 1 second');
+                scene.musicLoopActive = false;
+                globalMusicActive = false;
+                // Wait 1 second (1000ms) before playing again
+                setTimeout(() => {
+                    if (!globalMusicActive && !scene.musicLoopActive) { // Double check
+                        startBackgroundMusic(scene);
+                    }
+                }, 1000);
+            });
+        }
+        
+        function spawnBarrier() {
+            if (gameState !== 'playing') return;
+            
+            const barrierTypes = ['barrier1', 'barrier2', 'barrier3'];
+            
+            // Randomize barrier placement for interesting gameplay (more options, weighted for playability)
+            const placementOptions = [
+                // Ground barriers (most common - 40% chance)
+                { x: 820, y: groundY - 15, type: 'ground' },
+                { x: 820, y: groundY - 15, type: 'ground' },
+                { x: 820, y: groundY - 15, type: 'ground' },
+                { x: 820, y: groundY - 15, type: 'ground' },
+                
+                // Low barriers (common - 30% chance)
+                { x: 820, y: groundY - 50, type: 'low' },
+                { x: 820, y: groundY - 60, type: 'low' },
+                { x: 820, y: groundY - 70, type: 'low' },
+                
+                // Medium barriers (uncommon - 20% chance)
+                { x: 820, y: groundY - 90, type: 'medium' },
+                { x: 820, y: groundY - 100, type: 'medium' },
+                
+                // High barriers (rare - 10% chance)
+                { x: 820, y: groundY - 130, type: 'high' },
+                { x: 820, y: groundY - 140, type: 'high' }
+            ];
+            
+            // 25% chance to spawn multiple barriers for increased difficulty
+            const spawnMultiple = Math.random() < 0.25;
+            const barrierCount = spawnMultiple ? 2 : 1;
+            
+            for (let i = 0; i < barrierCount; i++) {
+                const randomBarrier = barrierTypes[Math.floor(Math.random() * barrierTypes.length)];
+                const selectedPlacement = placementOptions[Math.floor(Math.random() * placementOptions.length)];
+                
+                // Offset multiple barriers horizontally
+                const xOffset = spawnMultiple ? (i * 40) : 0;
+                
+                // Create barrier as static image (no physics body)
+                const barrier = this.add.image(selectedPlacement.x + xOffset, selectedPlacement.y, randomBarrier);
+                barrier.setScale(0.5);
+                barrier.setDepth(500); // Ensure barriers are visible
+                
+                // Add visual indicator for barrier height
+                let heightColor = '#00ff00'; // Default green
+                switch(selectedPlacement.type) {
+                    case 'ground': heightColor = '#00ff00'; break;  // Green
+                    case 'low': heightColor = '#ffff00'; break;     // Yellow
+                    case 'medium': heightColor = '#ff6600'; break;  // Orange
+                    case 'high': heightColor = '#ff0000'; break;   // Red
+                }
+                
+                // Add height indicator circle
+                const heightIndicator = this.add.graphics();
+                heightIndicator.fillStyle(parseInt(heightColor.replace('#', ''), 16), 0.3);
+                heightIndicator.fillCircle(0, 0, 8);
+                heightIndicator.x = selectedPlacement.x + xOffset;
+                heightIndicator.y = selectedPlacement.y;
+                heightIndicator.setDepth(400); // Behind barriers but visible
+                
+                // Add to barriers array for manual tracking
+                barriers.push({
+                    sprite: barrier,
+                    x: selectedPlacement.x + xOffset,
+                    y: selectedPlacement.y,
+                    height: selectedPlacement.type,
+                    indicator: heightIndicator
+                });
+            }
+        }
+        
+        function update() {
+            if (gameState !== 'playing') return;
+            
+            // Mobile-specific: prevent game from running if player is null
+            if (!this.player) {
+                console.log('Player is null, stopping game');
+                gameState = 'gameOver';
+                return;
+            }
+            
+            // Handle multi-jump input - works at ANY time (keyboard and touch)
+            if (Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
+                handleJump(this);
+            }
+            
+            // Reset jump count when landing (but only if not jumping)
+            if (this.player.body.blocked.down && this.player.body.velocity.y >= 0) {
+                jumpCount = 0;
+            }
+            
+            // Move barriers toward player (endless runner)
+            barriers.forEach((barrier, index) => {
+                // Move barrier left toward player
+                barrier.x -= 200 * speed * (this.game.loop.delta / 1000);
+                barrier.sprite.x = barrier.x;
+                
+                // Update indicator position
+                if (barrier.indicator) {
+                    barrier.indicator.x = barrier.x;
+                }
+                
+                // Check collision with player (mobile-optimized collision detection)
+                const playerBounds = {
+                    left: this.player.x - 12,
+                    right: this.player.x + 12,
+                    top: this.player.y - 12,
+                    bottom: this.player.y + 12
+                };
+                
+                const barrierBounds = {
+                    left: barrier.x - 18,
+                    right: barrier.x + 18,
+                    top: barrier.y - 12,
+                    bottom: barrier.y + 12
+                };
+                
+                // Check if player and barrier overlap
+                if (playerBounds.right > barrierBounds.left && 
+                    playerBounds.left < barrierBounds.right && 
+                    playerBounds.bottom > barrierBounds.top && 
+                    playerBounds.top < barrierBounds.bottom) {
+                    console.log('COLLISION WITH BARRIER!');
+                    gameOver();
+                }
+                
+                // Remove barriers that are off-screen (left side)
+                if (barrier.x < -100) {
+                    barriersPassed++;
+                    
+                    // Combo system based on barriers passed
+                    const now = Date.now();
+                    if (now - lastBarrierTime < 2000) { // Within 2 seconds of last barrier
+                        combo++;
+                        // Combo sound removed - only plays for milestones now
+                        console.log(`Combo achieved - Combo: ${combo} (${barriersPassed} barriers)`);
+                    } else {
+                        combo = 1; // Reset combo if too much time passed
+                    }
+                    lastBarrierTime = now;
+                    
+                    // Special milestone message every 5 barriers
+                    if (barriersPassed % 5 === 0) {
+                        createMilestonePopup(barriersPassed);
+                        this.scoreSound.play(); // Play combo sound for milestone
+                        console.log(`Milestone reached: ${barriersPassed} barriers!`);
+                    }
+                    
+                    // Enhanced scoring with combo multiplier and height bonus
+                    const baseScore = 10;
+                    const comboMultiplier = Math.min(combo, 5); // Max 5x multiplier
+                    let heightMultiplier = 1;
+                    
+                    // Height bonus scoring
+                    switch(barrier.height) {
+                        case 'ground': heightMultiplier = 1; break;    // No bonus
+                        case 'low': heightMultiplier = 1.2; break;     // 20% bonus
+                        case 'medium': heightMultiplier = 1.5; break;  // 50% bonus
+                        case 'high': heightMultiplier = 2; break;     // 100% bonus
+                    }
+                    
+                    const bonusScore = Math.floor(baseScore * comboMultiplier * heightMultiplier);
+                    score += bonusScore;
+                    
+                    // Create score particles
+                    createScoreParticles(barrier.x, barrier.y, bonusScore);
+                    
+                    barrier.sprite.destroy();
+                    if (barrier.indicator) barrier.indicator.destroy();
+                    barriers.splice(index, 1);
+                    updateUI();
+                }
+            });
+            
+            // Update score continuously
+            score += Math.floor(speed);
+            speed += 0.001; // Gradually increase speed
+            updateUI();
+            
+            // Update particles
+            updateParticles();
+        }
+        
+        function createJumpParticles(x, y, color = '#00ff00') {
+            const scene = gameInstance.scene.scenes[0];
+            const colorValue = parseInt(color.replace('#', ''), 16);
+            
+            for (let i = 0; i < 8; i++) {
+                const particle = scene.add.graphics();
+                particle.fillStyle(colorValue);
+                particle.fillCircle(0, 0, 3);
+                
+                particles.push({
+                    sprite: particle,
+                    x: x + Math.random() * 20 - 10,
+                    y: y + Math.random() * 10,
+                    vx: Math.random() * 4 - 2,
+                    vy: Math.random() * 3 + 1,
+                    life: 30
+                });
+            }
+        }
+        
+        function createScoreParticles(x, y, score) {
+            const scene = gameInstance.scene.scenes[0];
+            const scoreText = scene.add.text(x, y, '+' + score, {
+                fontSize: '16px',
+                fill: '#ffff00',
+                fontWeight: 'bold'
+            }).setOrigin(0.5);
+            
+            // Animate score text
+            scene.tweens.add({
+                targets: scoreText,
+                y: y - 50,
+                alpha: 0,
+                duration: 1000,
+                onComplete: () => scoreText.destroy()
+            });
+        }
+        
+        function updateParticles() {
+            particles.forEach((particle, index) => {
+                particle.x += particle.vx;
+                particle.y += particle.vy;
+                particle.sprite.x = particle.x;
+                particle.sprite.y = particle.y;
+                particle.life--;
+                
+                if (particle.life <= 0) {
+                    particle.sprite.destroy();
+                    particles.splice(index, 1);
+                }
+            });
+        }
+        
+        function updateCombo() {
+            const comboElement = document.getElementById('combo');
+            const comboCountElement = document.getElementById('comboCount');
+            
+            if (combo > 1) {
+                comboElement.style.display = 'block';
+                comboCountElement.textContent = combo;
+                
+                // Only show popup for significant combos (3, 5, 10, etc.)
+                if (combo === 3 || combo === 5 || combo === 10 || combo % 10 === 0) {
+                    createComboPopup(combo);
+                }
+            } else {
+                comboElement.style.display = 'none';
+            }
+        }
+        
+        function createComboPopup(comboValue) {
+            const scene = gameInstance.scene.scenes[0];
+            
+            // Different messages for different combo milestones
+            let message = '';
+            let color = '#ff6600';
+            let size = '36px';
+            
+            if (comboValue === 3) {
+                message = 'NICE COMBO!';
+                color = '#00ff00';
+            } else if (comboValue === 5) {
+                message = 'GREAT COMBO!';
+                color = '#ffff00';
+            } else if (comboValue === 10) {
+                message = 'AMAZING COMBO!';
+                color = '#ff00ff';
+                size = '42px';
+            } else if (comboValue % 10 === 0) {
+                message = `EPIC x${comboValue}!`;
+                color = '#ff0000';
+                size = '48px';
+            }
+            
+            // Create combo popup text
+            const comboText = scene.add.text(400, 250, message, {
+                fontSize: size,
+                fill: color,
+                fontWeight: 'bold',
+                stroke: '#ffffff',
+                strokeThickness: 3,
+                shadow: {
+                    offsetX: 2,
+                    offsetY: 2,
+                    color: '#000000',
+                    blur: 3,
+                    fill: true
+                }
+            }).setOrigin(0.5);
+            
+            // Set depth to appear above everything
+            comboText.setDepth(2000);
+            
+            // Shorter, less distracting animation
+            scene.tweens.add({
+                targets: comboText,
+                scaleX: 1.2,
+                scaleY: 1.2,
+                alpha: 0,
+                duration: 800,
+                ease: 'Power2',
+                onComplete: () => {
+                    comboText.destroy();
+                }
+            });
+            
+            // Only add particles for major milestones
+            if (comboValue >= 5) {
+                createComboParticles(400, 250, comboValue);
+            }
+        }
+        
+        function createMilestonePopup(barrierCount) {
+            const scene = gameInstance.scene.scenes[0];
+            
+            // Different messages for different milestone levels
+            let message = '';
+            let color = '#00ff00';
+            let size = '32px';
+            
+            if (barrierCount === 5) {
+                message = '5 BARRIERS CLEARED!';
+                color = '#00ff00';
+            } else if (barrierCount === 10) {
+                message = '10 BARRIERS CLEARED!';
+                color = '#ffff00';
+            } else if (barrierCount === 15) {
+                message = '15 BARRIERS CLEARED!';
+                color = '#ff6600';
+            } else if (barrierCount === 20) {
+                message = '20 BARRIERS CLEARED!';
+                color = '#ff00ff';
+                size = '36px';
+            } else if (barrierCount % 25 === 0) {
+                message = `${barrierCount} BARRIERS CLEARED!`;
+                color = '#ff0000';
+                size = '40px';
+            } else {
+                message = `${barrierCount} BARRIERS CLEARED!`;
+                color = '#00ff00';
+            }
+            
+            // Create milestone popup text
+            const milestoneText = scene.add.text(400, 200, message, {
+                fontSize: size,
+                fill: color,
+                fontWeight: 'bold',
+                stroke: '#ffffff',
+                strokeThickness: 4,
+                shadow: {
+                    offsetX: 3,
+                    offsetY: 3,
+                    color: '#000000',
+                    blur: 5,
+                    fill: true
+                }
+            }).setOrigin(0.5);
+            
+            // Set depth to appear above everything
+            milestoneText.setDepth(2000);
+            
+            // Milestone animation
+            scene.tweens.add({
+                targets: milestoneText,
+                scaleX: 1.3,
+                scaleY: 1.3,
+                alpha: 0,
+                duration: 1200,
+                ease: 'Power2',
+                onComplete: () => {
+                    milestoneText.destroy();
+                }
+            });
+            
+            // Add milestone particles
+            createMilestoneParticles(400, 200, barrierCount);
+        }
+        
+        function createMilestoneParticles(x, y, barrierCount) {
+            const scene = gameInstance.scene.scenes[0];
+            const particleCount = Math.min(barrierCount / 5, 10); // More particles for higher milestones
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = scene.add.graphics();
+                particle.fillStyle(0x00ff00); // Green color for milestones
+                particle.fillCircle(0, 0, 4);
+                
+                particles.push({
+                    sprite: particle,
+                    x: x + Math.random() * 120 - 60,
+                    y: y + Math.random() * 120 - 60,
+                    vx: Math.random() * 8 - 4,
+                    vy: Math.random() * 8 - 4,
+                    life: 60
+                });
+            }
+        }
+        
+        function createComboParticles(x, y, comboValue) {
+            const scene = gameInstance.scene.scenes[0];
+            const particleCount = Math.min(comboValue, 8); // Fewer, more elegant particles
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = scene.add.graphics();
+                particle.fillStyle(0xff6600); // Orange color
+                particle.fillCircle(0, 0, 3);
+                
+                particles.push({
+                    sprite: particle,
+                    x: x + Math.random() * 80 - 40,
+                    y: y + Math.random() * 80 - 40,
+                    vx: Math.random() * 6 - 3,
+                    vy: Math.random() * 6 - 3,
+                    life: 40
+                });
+            }
+            
+            // Add fewer sparkle particles
+            for (let i = 0; i < 4; i++) {
+                const sparkle = scene.add.graphics();
+                sparkle.fillStyle(0xffff00); // Yellow sparkles
+                sparkle.fillCircle(0, 0, 2);
+                
+                particles.push({
+                    sprite: sparkle,
+                    x: x + Math.random() * 40 - 20,
+                    y: y + Math.random() * 40 - 20,
+                    vx: Math.random() * 4 - 2,
+                    vy: Math.random() * 4 - 2,
+                    life: 30
+                });
+            }
+        }
+        
+        function gameOver() {
+            console.log('GAME OVER!');
+            gameState = 'gameOver';
+            
+            // Play collision sound
+            const scene = gameInstance.scene.scenes[0];
+            if (scene.collisionSound) {
+                scene.collisionSound.play();
+            }
+            
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('finalBarriers').textContent = barriersPassed;
+            document.getElementById('gameOver').style.display = 'block';
+            
+            // Mobile-specific: prevent any further input
+            if (scene.input) {
+                scene.input.enabled = false;
+            }
+        }
+        
+        function restartGame() {
+            console.log('Restarting game...');
+            const scene = gameInstance.scene.scenes[0];
+            
+            // Reset player position and state
+            if (scene.player) {
+                scene.player.x = 150;
+                scene.player.y = groundY - 30;
+                scene.player.setVelocity(0, 0);
+                scene.player.setVisible(true);
+            }
+            
+            // Clear all barriers and indicators
+            barriers.forEach(barrier => {
+                if (barrier.sprite) barrier.sprite.destroy();
+                if (barrier.indicator) barrier.indicator.destroy();
+            });
+            barriers = [];
+            
+            // Clear all particles
+            particles.forEach(particle => {
+                if (particle.sprite) particle.sprite.destroy();
+            });
+            particles = [];
+            
+            // Reset game state
+            gameState = 'playing';
+            score = 0;
+            speed = 1.0;
+            barriersPassed = 0;
+            combo = 0;
+            lastJumpTime = 0;
+            jumpCount = 0;
+            updateUI();
+            updateCombo();
+            document.getElementById('gameOver').style.display = 'none';
+            
+            // Restart barrier spawning with random timing (increased difficulty)
+            scene.time.addEvent({
+                delay: 600, // Start spawning after 0.6 seconds
+                callback: () => {
+                    spawnBarrier.call(scene);
+                    // Schedule next barrier with random delay (0.3-1.5 seconds for higher difficulty)
+                    const nextDelay = 300 + Math.random() * 1200;
+                    scene.time.delayedCall(nextDelay, arguments.callee, [], scene);
+                },
+                callbackScope: scene,
+                loop: false // We'll handle the loop manually for random timing
+            });
+        }
+        
+        function updateUI() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('speed').textContent = speed.toFixed(2);
+            document.getElementById('barriersPassed').textContent = barriersPassed;
+            document.getElementById('jumpCount').textContent = jumpCount;
+            document.getElementById('maxJumps').textContent = maxJumps;
+        }
+        
+        // Stop any existing background music before starting new game
+        if (gameInstance && gameInstance.scene && gameInstance.scene.scenes[0]) {
+            const existingScene = gameInstance.scene.scenes[0];
+            if (existingScene.backgroundMusic) {
+                existingScene.backgroundMusic.stop();
+                existingScene.musicLoopActive = false;
+                globalMusicActive = false;
+                console.log('Stopped existing background music');
+            }
+        }
+        
+        // Initialize game (only if not already created)
+        if (!gameInstance) {
+            try {
+                console.log('Creating Phaser game...');
+                gameInstance = new Phaser.Game(config);
+                console.log('Phaser game created successfully');
+            } catch (error) {
+                console.error('Error creating Phaser game:', error);
+            }
+        } else {
+            console.log('Game instance already exists, not creating new one');
+        }
+        
+        // Audio control functions
+        function toggleMusic() {
+            const scene = gameInstance.scene.scenes[0];
+            const button = document.getElementById('musicToggle');
+            
+            if (scene.backgroundMusic.isPlaying || scene.musicLoopActive || globalMusicActive) {
+                scene.backgroundMusic.stop();
+                scene.musicLoopActive = false;
+                globalMusicActive = false;
+                button.textContent = '🔇 Music';
+                console.log('Music stopped by toggle');
+            } else {
+                startBackgroundMusic(scene);
+                button.textContent = '🔊 Music';
+                console.log('Music started by toggle');
+            }
+        }
+        
+        function toggleSound() {
+            const scene = gameInstance.scene.scenes[0];
+            const button = document.getElementById('soundToggle');
+            
+            if (scene.jumpSound.volume > 0) {
+                scene.jumpSound.setVolume(0);
+                button.textContent = '🔇 Sound';
+            } else {
+                scene.jumpSound.setVolume(0.3);
+                button.textContent = '🔊 Sound';
+            }
+        }
+        
+        // Global functions
+        window.restartGame = restartGame;
+        window.toggleMusic = toggleMusic;
+        window.toggleSound = toggleSound;
+        
+        // Error handling
+        window.addEventListener('error', (e) => {
+            console.error('Global error:', e.message);
+        });
+    </script>
+</body>
+</html>
