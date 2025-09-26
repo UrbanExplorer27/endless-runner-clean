@@ -1,0 +1,10 @@
+# Large audio files (can be added separately)
+background-music.mp3
+
+# System files
+.DS_Store
+*.log
+
+# Temporary files
+*.tmp
+*.temp
